@@ -6,7 +6,7 @@ from haiku.rag.store.engine import Store
 from haiku.rag.store.models import Chunk, Document
 from haiku.rag.store.repositories.chunk import ChunkRepository
 from haiku.rag.store.repositories.document import DocumentRepository
-from haiku.rag.store.schema import ensure_indexes, rebuild_indexes
+from haiku.rag.store.schema import ensure_indexes, index_specs, rebuild_indexes
 
 EXPECTED_INDEXED_COLUMNS = {
     "documents": {"id"},
@@ -58,6 +58,14 @@ async def _covering(table, column: str) -> list[tuple[str, str]]:
         for index in await table.list_indices()
         if column in index.columns
     ]
+
+
+def test_the_declared_chunks_fts_index_segments_cjk():
+    """The chunks full-text index is declared with the ICU tokenizer."""
+    declared = dict(index_specs("chunks"))
+    config = declared["content_fts"]
+    assert isinstance(config, FTS)
+    assert config.base_tokenizer == "icu"
 
 
 async def test_fresh_database_indexes_every_hot_lookup_key(temp_db_path):

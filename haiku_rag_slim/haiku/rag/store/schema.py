@@ -149,8 +149,19 @@ def index_specs(table_name: str) -> list[tuple[str, Bitmap | BTree | FTS]]:
             return [("id", BTree()), ("uri", BTree())]
         case "chunks":
             return [
-                # Positions and stop words are required for phrase queries.
-                ("content_fts", FTS(with_position=True, remove_stop_words=False)),
+                # Positions and stop words are required for phrase queries. The
+                # ICU tokenizer is what segments CJK text: the default "simple"
+                # tokenizer splits on whitespace and punctuation alone, so a run
+                # of Chinese is one token, and the index drops any token past
+                # `max_token_length` (40 bytes, three per CJK character).
+                (
+                    "content_fts",
+                    FTS(
+                        with_position=True,
+                        remove_stop_words=False,
+                        base_tokenizer="icu",
+                    ),
+                ),
                 ("id", BTree()),
                 ("document_id", BTree()),
             ]
