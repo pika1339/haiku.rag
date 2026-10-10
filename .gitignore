@@ -44,3 +44,7 @@ CLAUDE.local.md
 
 # Vacuum investigation scratch: kept on disk, never committed
 vacuum-findings/
+
+# Source papers: PDFs stay local (size and copyright), the manifest is committed
+papers/*
+!papers/SOURCES.md
