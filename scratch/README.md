@@ -21,6 +21,13 @@ uv run python scratch/<脚本>.py papers
 | `zh_diagnosis_phase2.py` | 真实语料上 FTS 的 ground-truth 命中率 | 默认索引 zero-hit 97.5%→0%，MAP 0.0000→0.5714（40 个自动抽取词） |
 | `fts_ab_benchmark.py` | 改前/改后的 MAP / Recall / nDCG，加英文对照组 | 中文 MAP 0.2254→0.6989；英文两组全部无指标下降 |
 | `pdf_meta.py` | 从 PDF 首页抽标题/作者/出处 | `papers/SOURCES.md` 的来源 |
+| `build_corpus.py` | 建可复用语料库(幂等、可续跑、入库后 vacuum) | `.data/corpus.lancedb`,30 篇 / 2825 块 |
+| `build_evalset.py` | 生成评测集:单块题 + 跨篇多跳题 + 挖坑题,带二次校验 | `lit_evalset.jsonl`,57 题 |
+| `run_eval.py` | 跑某一臂:`plain` / `policy` / `coverage` / `rewrite` | 逐题答案、引用、查询数、覆盖度声明 |
+| `score_eval.py` | 判官评分 + 机械引用核对 | 每题的 `answer_correct` / `refused` / `cited_gold_chunk` |
+| `compare_arms.py` | 两臂配对统计(复用底座 `mcnemar_exact`) | 正确率、引用命中、拒答率、McNemar、符号检验 |
+| `merge_scores.py` | 把补跑结果合并回主结果 | — |
+| `baseline_vector.py` | 真实 bge-m3 向量下的三臂对照 | 见 `FINDINGS.md` §2 |
 
 ## 方法说明
 
