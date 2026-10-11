@@ -89,6 +89,22 @@ def main() -> int:
         line("多跳题数量", pct(len(multi), len(ans)), "lit_evalset.jsonl",
              "题目的 multihop 标记(脚本从 evalset 读,不从结果读)")
 
+    # --- 「检索未修复」重测(§4.9)-------------------------------------------
+    print()
+    for name in ("plain", "coverage", "rewrite"):
+        path = RUNS / f"lg_{name}_scored.jsonl"
+        rows = load(path)
+        if not rows:
+            line(f"legacy {name}", "缺文件", str(path), "-")
+            continue
+        ans = [r for r in rows if r["answerable"]]
+        ok = sum(1 for r in ans if r["answer_correct"])
+        cited = sum(1 for r in ans if r["cited_gold_chunk"])
+        line(f"legacy {name} 正确率", pct(ok, len(ans)), str(path),
+             "同主实验口径")
+        line(f"legacy {name} 引用命中", pct(cited, len(ans)), str(path),
+             "cited ∩ gold_chunk_ids")
+
     # --- A/B 基准(来自日志,非 JSONL)----------------------------------------
     log = RUNS / "fts_ab_benchmark_output.txt"
     if log.exists():
