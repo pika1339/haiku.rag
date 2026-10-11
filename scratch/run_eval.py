@@ -30,7 +30,8 @@ from haiku.rag.config import AppConfig, set_config  # noqa: E402
 from haiku.rag.utils.models import get_model  # noqa: E402
 from lit_agent.coverage import create_capability as create_coverage  # noqa: E402
 
-DB = Path(".data/corpus.lancedb").resolve()
+# LIT_DB lets an arm run against another corpus (e.g. the legacy-tokenizer one)
+DB = Path(os.environ.get("LIT_DB", ".data/corpus.lancedb")).resolve()
 REQUEST_LIMIT = 20
 
 
