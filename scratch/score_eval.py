@@ -41,6 +41,22 @@ JUDGE_REFUSAL = """判断下面这段回答是否在"拒绝回答"——即明�
 
 只输出 JSON:{{"refused": true/false}}"""
 
+# A near-miss case asks about a combination no paper uses. Plain refusal is not the
+# only correct shape: saying "no paper does this" answers the question correctly,
+# and a refusal judge does not see that as a refusal.
+JUDGE_NEARMISS = """下面有一个关于一批论文的问题,以及模型给出的回答。
+
+问题:{question}
+回答:{answer}
+
+正确答案是:这批论文里【没有】任何一篇同时具备问题中提到的两点。
+
+请判断回答是否正确地表达了这一点——即明确说明**没有这样的论文**,或者表示无法回答。
+如果回答声称存在这样一篇论文、或指名了具体论文,判为不正确。
+如果回答绕开问题、没有明确表态,也判为不正确。
+
+只输出 JSON:{{"correct": true/false, "reason": "简短理由"}}"""
+
 
 def parse(text: str):
     import re
@@ -86,6 +102,28 @@ async def main(results_path: str, evalset_path: str, out_path: str) -> int:
         case = gold[r["id"]]
         answer = (r.get("answer") or "").strip()
         entry = dict(r)
+        if case.get("near_miss"):
+            # The metric for these is whether the model correctly says no such
+            # paper exists, which is neither "correct answer" nor "refusal".
+            if not answer:
+                entry["handled_correctly"] = False
+                entry["judge_reason"] = "no answer"
+            else:
+                v = await ask(client, JUDGE_NEARMISS.format(
+                    question=case["question"], answer=answer))
+                entry["handled_correctly"] = bool(v.get("correct"))
+                entry["judge_reason"] = str(v.get("reason", ""))[:200]
+            entry["refused"] = bool(entry.get("refused"))
+            entry["near_miss"] = True
+            entry["answer_correct"] = None
+            entry.update(
+                cited_gold_chunk=False, gold_document=None, answerable=False,
+                gold_answer=None, verified_answerable=False,
+            )
+            scored.append(entry)
+            print(f"  {entry['id']} handled={entry['handled_correctly']} "
+                  f"{str(entry.get('judge_reason',''))[:44]}", flush=True)
+            continue
         if not answer:
             entry.update(answer_correct=False, refused=False, judge_reason="no answer")
         else:
@@ -126,6 +164,10 @@ async def main(results_path: str, evalset_path: str, out_path: str) -> int:
           f"({sum(1 for s in ans if s['cited_gold_chunk']) / max(len(ans), 1):.1%})")
     print(f"  unanswerable  n={len(unans):>3}  refused={sum(1 for s in unans if s['refused']):>3} "
           f"({sum(1 for s in unans if s['refused']) / max(len(unans), 1):.1%})")
+    near = [s for s in scored if s.get("near_miss")]
+    if near:
+        ok = sum(1 for s in near if s.get("handled_correctly"))
+        print(f"  near-miss     n={len(near):>3}  handled correctly={ok:>3} ({ok / len(near):.1%})")
     print(f"  errors        n={sum(1 for s in scored if s.get('error'))}")
     print(f"  -> {out_path}")
     return 0

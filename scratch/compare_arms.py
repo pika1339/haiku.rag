@@ -95,12 +95,31 @@ def main(a_path: str, b_path: str) -> int:
               f"符号检验 p = {sign_test(up, down):.4f}")
 
     # Refusal on unanswerable
-    ua = [k for k in shared if not a[k]["answerable"]]
+    ua = [k for k in shared if not a[k]["answerable"] and not a[k].get("near_miss")]
     if ua:
         ra = sum(1 for k in ua if a[k]["refused"])
         rb = sum(1 for k in ua if b[k]["refused"])
         print(f"\n  === 挖坑题拒答率 ===")
         print(f"    A {rate(ra, len(ua))}   B {rate(rb, len(ua))}")
+
+    # The near-miss metric: did the model correctly say no such paper exists.
+    nm = [k for k in shared if a[k].get("near_miss")]
+    if nm:
+        ha = sum(1 for k in nm if a[k].get("handled_correctly"))
+        hb = sum(1 for k in nm if b[k].get("handled_correctly"))
+        bb = cc = 0
+        for k in nm:
+            av, bv = bool(a[k].get("handled_correctly")), bool(b[k].get("handled_correctly"))
+            if bv and not av:
+                bb += 1
+            elif av and not bv:
+                cc += 1
+        p = mcnemar_exact(bb, cc)
+        print(f"\n  === 近失题:正确指出「没有论文同时使用两者」 ===")
+        print(f"    A {rate(ha, len(nm))}   B {rate(hb, len(nm))}")
+        print(f"    McNemar b={bb} c={cc} discordant={bb + cc} p={p:.4f}"
+              f"   {'SIGNIFICANT' if p < 0.05 else 'not significant'}")
+        print(f"    最小显著 |b-c| = {resolution(bb + cc)}")
     return 0
 
 
