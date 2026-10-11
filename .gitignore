@@ -48,3 +48,6 @@ vacuum-findings/
 # Source papers: PDFs stay local (size and copyright), the manifest is committed
 papers/*
 !papers/SOURCES.md
+
+# 本地语料库(可重建,不进仓库)
+.data/
